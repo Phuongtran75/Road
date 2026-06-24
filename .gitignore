@@ -41,3 +41,6 @@ SKILL.md
 Chandanaveli_2025_*
 He_2022_*
 Mattyus_2016_*
+
+# Ignore remote thesis results references in results folder
+results/Original_Nilsson_*
