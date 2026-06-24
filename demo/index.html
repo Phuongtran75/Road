@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lane-Level Intersection Topology — Deep Learning Pipeline Demo</title>
+    <meta name="description" content="Interactive demo of a deep learning pipeline for extracting lane-level network topology at signalized intersections from aerial imagery and OpenStreetMap.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Animated background -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    <div class="bg-glow bg-glow-3"></div>
+
+    <!-- Navigation -->
+    <nav id="main-nav">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <span class="brand-icon">◈</span>
+                <span class="brand-text">LaneTopology</span>
+            </div>
+            <div class="nav-links">
+                <a href="#hero" class="nav-link active">Overview</a>
+                <a href="#pipeline" class="nav-link">Pipeline</a>
+                <a href="#data" class="nav-link">Dataset</a>
+                <a href="#map-section" class="nav-link">Interactive Map</a>
+                <a href="#results" class="nav-link">Results</a>
+                <a href="#architecture" class="nav-link">Architecture</a>
+                <a href="#references" class="nav-link">References</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="hero">
+        <div class="hero-content">
+            <div class="hero-badge">Research Replication • Nilsson & Oucheikh 2026</div>
+            <h1>Inferring Lane-Level Topology<br>from <span class="gradient-text">Aerial Imagery</span></h1>
+            <p class="hero-subtitle">
+                A staged deep learning pipeline that predicts lane-to-lane adjacency matrices 
+                for signalized intersections using aerial imagery, OpenStreetMap road graphs, 
+                and oriented object detection.
+            </p>
+            <div class="hero-stats">
+                <div class="stat-card">
+                    <div class="stat-value">894</div>
+                    <div class="stat-label">Intersections</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">4</div>
+                    <div class="stat-label">Pipeline Stages</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">0.49</div>
+                    <div class="stat-label">Best Turn F1</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">66×66</div>
+                    <div class="stat-label">Adjacency Matrix</div>
+                </div>
+            </div>
+            <a href="#pipeline" class="cta-button">
+                Explore Pipeline
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3L13 8L8 13M13 8H3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+        </div>
+    </section>
+
+    <!-- Pipeline Section -->
+    <section id="pipeline">
+        <div class="section-header">
+            <span class="section-tag">Architecture</span>
+            <h2>4-Stage Modelling Pipeline</h2>
+            <p>Each stage feeds probabilities downstream without binarization, preserving information from the predicted distribution.</p>
+        </div>
+
+        <div class="pipeline-flow">
+            <div class="pipeline-stage" data-stage="1">
+                <div class="stage-number">01</div>
+                <div class="stage-icon">🔍</div>
+                <h3>Lane Object Detection</h3>
+                <p>Oriented object detection on rotated arm images. Predicts 32 classes including arrows, vehicles, lane markings, and medians using Faster R-CNN ResNet.</p>
+                <div class="stage-detail">
+                    <span class="detail-chip">Detectron2</span>
+                    <span class="detail-chip">Focal Loss</span>
+                    <span class="detail-chip">32 Classes</span>
+                </div>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-stage" data-stage="2">
+                <div class="stage-number">02</div>
+                <div class="stage-icon">🛣️</div>
+                <h3>Lane Detection</h3>
+                <p>CNN + MLP predicts slot-wise lane presence, type, and turn directions for 22 slots. Takes arm images, 220-dim projected object scores, and bearing offsets.</p>
+                <div class="stage-detail">
+                    <span class="detail-chip">ResNet-18</span>
+                    <span class="detail-chip">22 Slots</span>
+                    <span class="detail-chip">8 Attributes</span>
+                </div>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-stage" data-stage="3">
+                <div class="stage-number">03</div>
+                <div class="stage-icon">🔗</div>
+                <h3>Turn Detection</h3>
+                <p>Stacked attributes from all arms and absolute bearings predict the 4×22×66 adjacency matrix encoding lane-to-lane connections.</p>
+                <div class="stage-detail">
+                    <span class="detail-chip">Adjacency Matrix</span>
+                    <span class="detail-chip">Weighted CE + Dice</span>
+                    <span class="detail-chip">5808 outputs</span>
+                </div>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-stage" data-stage="4">
+                <div class="stage-number">04</div>
+                <div class="stage-icon">✅</div>
+                <h3>Post-Processing (PPH)</h3>
+                <p>Rule-based heuristic processes probabilities in descending order to enforce topological consistency. Removes impossible lane-slot connections.</p>
+                <div class="stage-detail">
+                    <span class="detail-chip">6 Rules</span>
+                    <span class="detail-chip">Greedy</span>
+                    <span class="detail-chip">Consistency</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- PPH Rules -->
+        <div class="pph-rules-card">
+            <h3>Post-Processing Heuristic Rules</h3>
+            <div class="rules-grid">
+                <div class="rule-item"><span class="rule-num">1</span> No exit lanes to the left of an approach lane</div>
+                <div class="rule-item"><span class="rule-num">2</span> No approach lanes to the right of an exit lane</div>
+                <div class="rule-item"><span class="rule-num">3</span> No through or right turns to the left of a left turn</div>
+                <div class="rule-item"><span class="rule-num">4</span> No left turns to the right of a through or right turn</div>
+                <div class="rule-item"><span class="rule-num">5</span> No left or through turns to the right of a right turn</div>
+                <div class="rule-item"><span class="rule-num">6</span> No duplicate turns from same approach to same exit slot</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dataset Section -->
+    <section id="data">
+        <div class="section-header">
+            <span class="section-tag">Dataset</span>
+            <h2>Sydney Intersection Dataset</h2>
+            <p>894 signalized intersections from New South Wales, Australia. Aerial imagery from public WMTS, road graph from OpenStreetMap.</p>
+        </div>
+
+        <div class="data-grid">
+            <div class="data-card data-card-wide">
+                <h3>Sample Aerial Imagery</h3>
+                <p class="data-desc">Rotated arm images used as input to the detection pipeline. Each intersection arm is extracted and rotated using OSM-derived bearings.</p>
+                <div class="image-gallery" id="image-gallery">
+                    <!-- Images loaded dynamically -->
+                </div>
+                <button class="gallery-btn" id="load-more-btn" onclick="loadMoreImages()">Load More Samples</button>
+            </div>
+
+            <div class="data-card">
+                <h3>Dataset Statistics</h3>
+                <div class="data-stats">
+                    <div class="data-stat-row">
+                        <span>Total intersections</span>
+                        <span class="mono">894</span>
+                    </div>
+                    <div class="data-stat-row">
+                        <span>Annotated arms</span>
+                        <span class="mono">431</span>
+                    </div>
+                    <div class="data-stat-row">
+                        <span>Object classes</span>
+                        <span class="mono">36</span>
+                    </div>
+                    <div class="data-stat-row">
+                        <span>Lane slots per arm</span>
+                        <span class="mono">22</span>
+                    </div>
+                    <div class="data-stat-row">
+                        <span>Train / Val / Test</span>
+                        <span class="mono">80 / 10 / 10</span>
+                    </div>
+                    <div class="data-stat-row">
+                        <span>Lane positive rate</span>
+                        <span class="mono">~17%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="data-card">
+                <h3>Lane Type Distribution</h3>
+                <div class="lane-type-chart" id="lane-type-chart">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Map Section -->
+    <section id="map-section">
+        <div class="section-header">
+            <span class="section-tag">Interactive Map</span>
+            <h2>Lane-Level Topology Map</h2>
+            <p>Select an intersection in Sydney, Australia to view its lane structures, bearings, and predicted turn connections running on OpenStreetMap.</p>
+        </div>
+
+        <div class="map-container-wrap">
+            <div class="map-controls">
+                <div class="control-group">
+                    <label for="intersection-select">Select Intersection</label>
+                    <select id="intersection-select" class="control-select" onchange="changeIntersection(this.value)">
+                        <option value="inter_1">George St & Park St (4-way CBD)</option>
+                        <option value="inter_2">Glebe Point Rd & Francis St (T-junction Glebe)</option>
+                        <option value="inter_3">Epping Rd & Balaclava Rd (Macquarie Park)</option>
+                        <option value="inter_4">Parramatta Rd & Woodville Rd (Granville)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Model Output Mode</label>
+                    <div class="toggle-buttons">
+                        <button class="toggle-btn active" id="mode-processed" onclick="setMapMode('processed')">PPH Processed</button>
+                        <button class="toggle-btn" id="mode-raw" onclick="setMapMode('raw')">Raw Predictions</button>
+                    </div>
+                </div>
+
+                <div class="intersection-details-card">
+                    <h3>Intersection Details</h3>
+                    <div class="detail-rows" id="map-inter-details">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <div class="map-legend">
+                    <h3>Legend</h3>
+                    <div class="legend-items">
+                        <div class="legend-item"><span class="legend-color" style="background: #3b82f6; border: 1px solid rgba(255,255,255,0.2);"></span> Approach Lane</div>
+                        <div class="legend-item"><span class="legend-color" style="background: #10b981; border: 1px solid rgba(255,255,255,0.2);"></span> Exit Lane</div>
+                        <div class="legend-item"><span class="legend-color" style="background: #ef4444; border: 1px solid rgba(255,255,255,0.2);"></span> Left Turn</div>
+                        <div class="legend-item"><span class="legend-color" style="background: #6366f1; border: 1px solid rgba(255,255,255,0.2);"></span> Through Turn</div>
+                        <div class="legend-item"><span class="legend-color" style="background: #f59e0b; border: 1px solid rgba(255,255,255,0.2);"></span> Right Turn</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="map-main">
+                <div class="dashboard-frame">
+                    <div class="dashboard-screen">
+                        <div id="osm-map" class="osm-map-element"></div>
+                        
+                        <!-- HUD Navigation Guidance Card -->
+                        <div class="hud-nav-card" id="hud-nav-card">
+                            <div class="hud-nav-icon" id="hud-nav-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" id="hud-turn-svg">
+                                    <path d="M12 19V5M5 12l7-7 7 7"/>
+                                </svg>
+                            </div>
+                            <div class="hud-nav-details">
+                                <div class="hud-nav-dist" id="hud-nav-dist">150 m</div>
+                                <div class="hud-nav-street" id="hud-nav-street">Select approach lane</div>
+                            </div>
+                            <div class="hud-nav-lanes" id="hud-nav-lanes">
+                                <!-- Dynamic lane indicator icons -->
+                            </div>
+                        </div>
+
+                        <!-- HUD Speed Limit Sign -->
+                        <div class="hud-speed-limit" id="hud-speed-limit">
+                            <div class="hud-speed-value" id="hud-speed-val">60</div>
+                            <div class="hud-speed-label">km/h</div>
+                        </div>
+
+                        <!-- HUD Bottom-Left Route Card -->
+                        <div class="hud-route-card" id="hud-route-card">
+                            <div class="hud-route-time" id="hud-route-time">10:00 AM • 19 min • 15 km</div>
+                            <div class="hud-route-buttons">
+                                <button class="hud-btn"><span class="hud-icon">🔍</span></button>
+                                <button class="hud-btn"><span class="hud-icon">🔀</span></button>
+                                <button class="hud-btn hud-btn-danger"><span class="hud-icon">✕</span></button>
+                            </div>
+                        </div>
+
+                        <!-- HUD Floating Map Controls (Compass, Settings, Voice Assistant) -->
+                        <div class="hud-controls">
+                            <div class="hud-control-btn compass-btn" id="hud-compass" onclick="resetMapView()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" id="compass-needle">
+                                    <polygon points="12,2 19,21 12,17 5,21"/>
+                                </svg>
+                            </div>
+                            <div class="hud-control-btn" id="hud-settings">⚙️</div>
+                            <div class="hud-control-btn" id="hud-voice">😀</div>
+                        </div>
+
+                        <!-- HUD Bottom System Bar -->
+                        <div class="hud-system-bar">
+                            <div class="system-left">
+                                <span class="sys-icon">🏠</span>
+                                <span class="sys-icon">🎵</span>
+                                <span class="sys-icon">📞</span>
+                                <span class="sys-icon">⚡</span>
+                            </div>
+                            <div class="system-right">
+                                <span class="sys-text">Alex</span>
+                                <span class="sys-icon">📶</span>
+                                <span class="sys-icon">🔋</span>
+                                <span class="sys-text" id="sys-temp">22°C</span>
+                                <span class="sys-text" id="sys-time">9:41 AM</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="map-tip">
+                    <span class="tip-icon">💡</span> Click on any <strong>Approach Lane (Blue)</strong> to visualize its predicted turning paths onto exit lanes.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section id="results">
+        <div class="section-header">
+            <span class="section-tag">Evaluation</span>
+            <h2>Performance Results</h2>
+            <p>Metrics across training versions at turn-level, slot-level, and arm-level granularity.</p>
+        </div>
+
+        <!-- Version Selector -->
+        <div class="version-selector">
+            <button class="version-btn active" data-version="version_45">Version 45 (Best)</button>
+            <button class="version-btn" data-version="version_43">Version 43</button>
+            <button class="version-btn" data-version="version_41">Version 41</button>
+            <button class="version-btn" data-version="version_18">Version 18</button>
+        </div>
+
+        <!-- Turn Level -->
+        <div class="results-panel">
+            <div class="results-row">
+                <div class="results-card">
+                    <h3>Turn Level (Strictest)</h3>
+                    <p class="results-desc">Exact lane-slot pair connections in the adjacency matrix.</p>
+                    <div class="metric-bars" id="turn-level-metrics"></div>
+                </div>
+
+                <div class="results-card">
+                    <h3>Slot Level (Turn Categories)</h3>
+                    <p class="results-desc">Correct approach slot + correct exit arm.</p>
+                    <div class="metric-bars" id="slot-level-metrics"></div>
+                </div>
+            </div>
+
+            <div class="results-row">
+                <div class="results-card results-card-wide">
+                    <h3>Arm Level (Lane Types)</h3>
+                    <p class="results-desc">Number of correctly predicted lane types per arm. Compared against baseline rule-based model.</p>
+                    <div class="arm-comparison" id="arm-level-metrics"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Paper Results Comparison -->
+        <div class="paper-comparison">
+            <h3>Original Paper Results (Nilsson & Oucheikh 2026)</h3>
+            <div class="comparison-table-wrap">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Class</th>
+                            <th>F1 Raw</th>
+                            <th>F1 Processed</th>
+                            <th>F1 Default</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Approach lanes</td><td>0.89</td><td>0.88</td><td class="highlight">0.92</td></tr>
+                        <tr><td>Left turning</td><td>0.85</td><td>0.85</td><td class="highlight">0.94</td></tr>
+                        <tr><td>Through lanes</td><td>0.89</td><td>0.89</td><td class="highlight">0.90</td></tr>
+                        <tr><td>Right turning</td><td>0.85</td><td>0.84</td><td class="highlight">0.89</td></tr>
+                        <tr class="table-divider"><td>L-type</td><td>0.45</td><td>0.45</td><td class="highlight">0.52</td></tr>
+                        <tr><td>LT-type</td><td>0.79</td><td>0.79</td><td class="highlight">0.84</td></tr>
+                        <tr><td>T-type</td><td class="highlight">0.64</td><td class="highlight">0.64</td><td>0.61</td></tr>
+                        <tr><td>TR-type</td><td class="highlight">0.73</td><td class="highlight">0.73</td><td>0.72</td></tr>
+                        <tr><td>R-type</td><td>0.46</td><td>0.46</td><td class="highlight">0.48</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="table-note">Green highlights indicate the best F1 per row. The neural network outperforms the default model on T-type and TR-type lanes, where layout variety benefits learning beyond simple rules.</p>
+        </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section id="architecture">
+        <div class="section-header">
+            <span class="section-tag">Implementation</span>
+            <h2>Model Architecture</h2>
+            <p>ResNet-18 backbone with frozen pre-trained weights. Multi-input fusion via concatenated MLP heads.</p>
+        </div>
+
+        <div class="arch-cards">
+            <div class="arch-card">
+                <div class="arch-header">
+                    <span class="arch-badge">Stage 2</span>
+                    <h3>LaneDetector</h3>
+                </div>
+                <div class="arch-diagram">
+                    <div class="arch-flow">
+                        <div class="arch-input">Arm Image<br><span class="mono-sm">(B, 3, 224, 224)</span></div>
+                        <div class="arch-block">ResNet-18<br><span class="mono-sm">→ (B, 512)</span></div>
+                    </div>
+                    <div class="arch-concat">CONCAT</div>
+                    <div class="arch-flow">
+                        <div class="arch-input">Projections + Bearings<br><span class="mono-sm">(B, 223)</span></div>
+                        <div class="arch-block">MLP<br><span class="mono-sm">223→128→64</span></div>
+                    </div>
+                    <div class="arch-output">
+                        <div class="arch-block arch-block-final">Combined MLP<br><span class="mono-sm">576→256→176</span></div>
+                        <div class="arch-result">Output: (B, 22, 8)<br><span class="mono-sm">lane, type, turns, slip</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="arch-card">
+                <div class="arch-header">
+                    <span class="arch-badge">Stage 3</span>
+                    <h3>TurnDetector</h3>
+                </div>
+                <div class="arch-diagram">
+                    <div class="arch-flow">
+                        <div class="arch-input">Intersection Image<br><span class="mono-sm">(B, 3, 224, 224)</span></div>
+                        <div class="arch-block">ResNet-18<br><span class="mono-sm">→ (B, 512)</span></div>
+                    </div>
+                    <div class="arch-concat">CONCAT</div>
+                    <div class="arch-flow">
+                        <div class="arch-input">Stacked Attrs + Bearings<br><span class="mono-sm">(B, 708)</span></div>
+                        <div class="arch-block">MLP<br><span class="mono-sm">708→256→128</span></div>
+                    </div>
+                    <div class="arch-output">
+                        <div class="arch-block arch-block-final">Combined MLP<br><span class="mono-sm">640→512→5808</span></div>
+                        <div class="arch-result">Output: (B, 4, 22, 66)<br><span class="mono-sm">adjacency matrix</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loss Function -->
+        <div class="loss-card">
+            <h3>Loss Function Design</h3>
+            <div class="loss-grid">
+                <div class="loss-item">
+                    <h4>Weighted Cross-Entropy</h4>
+                    <p>Class weights derived from N/P ratios counteract severe imbalance. Weights capped at 30 to prevent instability.</p>
+                    <div class="loss-formula">
+                        <span class="mono-sm">w<sub>CE</sub> = min(N/P ratio, 30)</span>
+                    </div>
+                </div>
+                <div class="loss-item">
+                    <h4>Soft Dice Loss</h4>
+                    <p>Complementary overlap-based loss that handles imbalanced classes without explicit weighting.</p>
+                    <div class="loss-formula">
+                        <span class="mono-sm">ℒ = ℒ<sub>CE</sub> + ℒ<sub>SD</sub></span>
+                    </div>
+                </div>
+                <div class="loss-item">
+                    <h4>"Almost Impossible" Masking</h4>
+                    <p>Adjacency cells with N/P ≥ 1000 receive reduced CE weight to prevent the model from focusing on near-impossible connections.</p>
+                    <div class="loss-weights">
+                        <span class="weight-chip">CE Interest: 0.40</span>
+                        <span class="weight-chip">CE Impossible: 0.20</span>
+                        <span class="weight-chip">Soft Dice: 0.40</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- References Section -->
+    <section id="references">
+        <div class="section-header">
+            <span class="section-tag">Literature</span>
+            <h2>Key References</h2>
+            <p>Primary papers and related work in lane-level topology extraction.</p>
+        </div>
+
+        <div class="ref-grid">
+            <div class="ref-card ref-primary">
+                <div class="ref-year">2026</div>
+                <h4>Nilsson & Oucheikh</h4>
+                <p>Predicting the adjacency matrix to construct lane-level topology of signalised intersections with aerial imagery and deep learning</p>
+                <span class="ref-venue">Transportation Research Interdisciplinary Perspectives, 35</span>
+            </div>
+            <div class="ref-card ref-primary">
+                <div class="ref-year">2024</div>
+                <h4>Nilsson (Thesis)</h4>
+                <p>Inferring lane-level topology of signalised intersections from aerial imagery and OpenStreetMap using deep learning</p>
+                <span class="ref-venue">Master's Thesis, Lund University</span>
+            </div>
+            <div class="ref-card">
+                <div class="ref-year">2022</div>
+                <h4>He & Balakrishnan</h4>
+                <p>LaneExtraction: Staged modelling pipeline using lane segmentation, vectorisation, and binary classification for intersection connections.</p>
+                <span class="ref-venue">Enriching digital maps</span>
+            </div>
+            <div class="ref-card">
+                <div class="ref-year">2023</div>
+                <h4>Buchner et al.</h4>
+                <p>Improved lane-level extraction using segmentation and iterative graph growing networks to predict lane-specific trajectories.</p>
+                <span class="ref-venue">Road network extraction</span>
+            </div>
+            <div class="ref-card">
+                <div class="ref-year">2024</div>
+                <h4>Vijverberg, Beers & With</h4>
+                <p>Approach lanes and conflict areas from birds-eye segmentation combined with domain knowledge and Highest Confidence First merging.</p>
+                <span class="ref-venue">Lane estimation</span>
+            </div>
+            <div class="ref-card">
+                <div class="ref-year">2024</div>
+                <h4>Ruiz et al.</h4>
+                <p>Diffusion model refinement for segmentation-based lane detection at non-intersection areas, surpassing previous methods.</p>
+                <span class="ref-venue">SEE-MAP</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <span class="brand-icon">◈</span>
+                <span>LaneTopology Demo</span>
+            </div>
+            <p>Replication study based on Nilsson & Oucheikh (2026). Dataset: 894 signalized intersections, Sydney NSW. Built with PyTorch.</p>
+            <div class="footer-links">
+                <span>ResNet-18</span>
+                <span>•</span>
+                <span>Detectron2</span>
+                <span>•</span>
+                <span>Optuna TPE</span>
+                <span>•</span>
+                <span>OpenStreetMap</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

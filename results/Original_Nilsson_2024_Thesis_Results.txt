@@ -1,0 +1,771 @@
+Total Pages in 2024 Thesis: 93
+
+================================================================================
+PAGE 43
+================================================================================
+33 
+features detected in the image, the summed lane object probabili=es, and the bearing oﬀsets. The maximum shib 
+threshold was set to 11 for each direc=on. This enabled an ar=ﬁcial sample size increase of a factor 23, thereby 
+increasing the training data size from 2390 to 54,960. 
+ 
+Figure 20: Arm bearings and bearing oﬀsets 
+ 
+Figure 21: Example lane detec=on input data augmenta=on with corresponding (in blue), new (in green), and 
+removed (in pink) values before and aber augmenta=on 
+ 
+
+
+================================================================================
+PAGE 44
+================================================================================
+34 
+ 
+Figure 22: Example lane detec=on label data augmenta=on with corresponding (in blue), new (in green), and 
+removed (in pink) values before and aber augmenta=on. 
+ 
+ 
+
+
+================================================================================
+PAGE 45
+================================================================================
+35 
+The lane data is an imbalanced dataset. This means that the frequency of class values are highly uneven. For 
+example, the probability of a lane slot containing a lane is ~17%, meaning that the nega=ve class (also called the 
+background class) occurs around 4.8 =mes to every posi=ve class. Unless treated, the model will be biased 
+towards predic=ng the background class. This is solved by introducing weights to the CE loss func=on so that the 
+imbalance problem is counteracted and to enable the model to befer predict posi=ve cases. The loss weight 
+values are deﬁned as the nega=ve-to-posi=ve ra=os (N/P ra=os) for each class. These are summarised in Table 4. 
+During training the maximum weight value is capped at 30, which was determined manually on a trial-and-error 
+basis. 
+Table 4: Lane class N/P ra=os 
+ 
+Class 
+N/P ra=o 
+No lane 
+0.21 
+Lane 
+4.80 
+Exit 
+11.18 
+Approach 
+10.07 
+Right 
+27.57 
+Through 
+13.72 
+Leb 
+26.29 
+Slip 
+2118.81 
+ 
+The lane detec=on model architecture is summarised in Figure 23. It combines blocks of MLPs and a ResNet CNN 
+block. The ResNet block takes the arm image input, while an MLP block takes the concatenated and ﬂafen 
+summed lane object probabili=es and bearing oﬀsets as input. The output from these two blocks are 
+concatenated and fed into an addi=onal MLP block, whose output is reshaped into the lane slot afribute matrix. 
+The ﬁnal ac=va=on func=ons converts the output into probabili=es. The Sigmoid func=on is used for the lane, 
+turn, and slip lane output, as these are binary outputs with independent probabili=es. The lane type output uses 
+the Sobmax func=on where output probabili=es across classes sum to one. The output of the lane detec=on 
+model is the lane slot afribute matrix. Figure 24 provides an example of the output structure and Figure 25 
+provides an illustra=ve predic=on example. 
+ 
+ 
+Figure 23: Lane detector architecture 
+The number of FC layers were determined manually on a trial-and-error basis. Adding addi=onal layers beyond 
+the layers in Figure 23 did not signiﬁcantly improved results. The loss func=on combines equally weighted CE and 
+SoB Dice loss, which is computed separately for each of the afribute categories, and are subsequently combined 
+into a single loss value as summarised in Table 5. The weight values were determined manually on a trial-and-
+error basis. Increasing weight value for the lane and lane type afributes improved overall training. Addi=onal 
+
+
+================================================================================
+PAGE 46
+================================================================================
+36 
+training se`ngs are summarised in Table 6. Larger batch size improved training and was set to 32, which was the 
+maximum aﬀorded by the RAM of the processing unit. 
+ 
+Figure 24: Lane detec=on predic=ons 
+ 
+Figure 25: Example lane object predic=on scores 
+ 
+ 
+
+
+================================================================================
+PAGE 47
+================================================================================
+37 
+Table 5: Lane detec=on loss func=on weights 
+ 
+Lane afribute 
+category 
+Possible values 
+CE loss weight 
+SoB Dice loss weight 
+Lane 
+True or False 
+0.20 
+0.20 
+Lane type 
+No lane, Approach lane, or Exit lane 
+0.15 
+0.15 
+Turn type 
+True or False for each turn type (Right, 
+Through, and LeB) 
+0.10 
+0.10 
+Slip lane 
+True or False 
+0.05 
+0.05 
+ 
+Table 6: Lane detec=on training details 
+ 
+Hyper-parameter 
+Value 
+Batch size 
+32 
+Learning rate 
+Tuned 
+Op=miser 
+Adam 
+Loss func=on 
+ℒ$)
+ + ℒ/0 
+Number of epochs 
+Early Stopping 
+Sample size 
+2987 
+Training/Valida=on/Test split 
+0.8 / 0.1 / 0.1 
+ 
+3.8.3 
+Turn detec1on 
+The turn detec=on model produces probabili=es of two lane slots being connected by outpu`ng the adjacency 
+matrix. It uses as input an image centered on the intersec=on, the lane slot afribute matrix predic=ons for each 
+of the intersec=on arms combined, and bearing values for each intersec=on arm. The lane slot afribute matrices 
+are stacked together in order of increasing arm labels as described in sec=on 3.6.3. The input and label data is 
+split into training, valida=on, and test datasets using 80 / 10 / 10 propor=ons. 
+An ini=al data transforma=on step was carried out for three-way intersec=ons by inser=ng an empty arm between 
+the two arms with the largest consecu=ve bearing diﬀerence. The bearing value is set to the value of the ﬁrst two 
+consecu=ve arms. Clockwise subsequen=al arm labels were incrementally increased, as demonstrated in Table 7. 
+The corresponding input lane detec=on scores and turn labels were remapped to the new arm labels. 
+Table 7: Bearings for transformed three-way intersec=ons 
+ 
+Arm 
+Ini=al bearing 
+Transformed bearing 
+1 
+40 
+40 
+2 
+225 
+40 
+3 
+310 
+225 
+4 
+0 
+310 
+ 
+In the Table 7 example, the largest consecu=ve bearing diﬀerence is between arms 1 and 2. The bearing value of 
+the new empty arm 2 is set to the bearing of arm 1. Ini=al arms 2 and 3 are remapped as arms 3 and 4, including 
+the corresponding input lane predic=on scores and turn labels. There are two beneﬁts with this transforma=on. 
+One is to avoid se`ng only the fourth approach arm row and third exit arm column values to zero when 
+represen=ng three-way intersec=ons. By le`ng any of the rows and columns be used to encode a three-way 
+intersec=on will reduce the risk for training bias. The second beneﬁt is that the exit arm columns now can be 
+interpreted as leb, through, and right turns, respec=vely. Using the ini=al encoding meant that the ﬁrst exit arm 
+could either be a leb or a through, and the second a through or a right. 
+As with the lane detec=on model, the turn detec=on model use data augmenta=on to ar=ﬁcially increase the 
+sample size. The input lane slot afribute predic=on probabili=es are shibed horizontally, with lane slot afributes 
+for each arm being shibed independently as shown in Figure 26. The intersec=on is subsequently rotated by 
+
+
+================================================================================
+PAGE 48
+================================================================================
+38 
+shibing the order of approach arms 𝑛34!56 =mes where 0 ≤ 𝑛34!56  ≤ 3 and by rota=ng intersec=on image a 
+corresponding angle 𝑛34!56 ⋅90∘, as shown in Figure 27. The input adjacency matrix, as shown in Figures 28 and 
+29. Just as in the lane detec=on model, this will mi=gate the eﬀect of the model learning based on the loca=on of 
+lane slots. 
+ 
+ 
+ 
+ 
+Figure 26: Example turn detec=on input data shib augmenta=on with corresponding (in blue), new (in green), and 
+removed (in pink) values before and aber augmenta=on 
+ 
+Figure 27: Example turn detec=on input data rota=on augmenta=on 
+
+
+================================================================================
+PAGE 49
+================================================================================
+39 
+ 
+Figure 28: Example turn detec=on label data shib augmenta=on with corresponding (in blue), new (in green), and 
+removed (in pink) values before and aber augmenta=on 
+ 
+Figure 29: Example turn detec=on label data rota=on augmenta=on 
+ 
+ 
+
+
+================================================================================
+PAGE 50
+================================================================================
+40 
+A maximum threshold was set to limit the horizontal lane slot shibs. The maximum threshold was further 
+constrained such that no posi=ve turn labels were omifed. For example, if the maximum threshold is set to 10 
+and the ﬁrst lane slot containing a lane is lane slot 8, the maximum allowed shib to the leb is set to 7 to maintain 
+the intersec=on turn topology. 
+As in the lane label data, the turn label data is highly imbalanced. To counteract the bias for nega=ve predic=ons 
+the CE loss func=on was weighted using N/P ra;os for each lane slot-connec=on cell in the turn label adjacency 
+matrix. The N/P ra=os were obtained by sampling the turn labels following applica=on of both the shib and 
+rota=on data augmenta=on techniques a large number of =mes. Table 8 shows summary sta=s=cs for resul=ng 
+N/P ra=os as a func=on of the maximum shib augmenta=on threshold, and Figure 30 shows the corresponding 
+spa=al distribu=on of N/P ra=os, with maximum values capped at 1000. 
+Table 8: Turn N/P ra=os 
+ 
+Shibs 
+mean 
+std 
+min 
+25% 
+50% 
+75% 
+max 
++/-0 shibs 
+3965 
+913 
+1 
+4210 
+4210 
+4210 
+4210 
++/-1 shibs 
+7603 
+2343 
+6 
+8420 
+8420 
+8420 
+8420 
++/-2 shibs 
+10742 
+4281 
+17 
+12630 
+12630 
+12630 
+12630 
++/-3 shibs 
+13112 
+6657 
+32 
+16839 
+16840 
+16840 
+16840 
++/-4 shibs 
+14618 
+9232 
+50 
+1753 
+21050 
+21050 
+21050 
++/-5 shibs 
+14933 
+11783 
+73 
+219 
+25260 
+25260 
+25260 
++/-6 shibs 
+14250 
+13900 
+105 
+253 
+9822 
+29470 
+29470 
++/-7 shibs 
+12373 
+15246 
+135 
+311 
+1603 
+33680 
+33680 
++/-8 shibs 
+9849 
+15299 
+157 
+370 
+461 
+12629 
+37890 
++/-9 shibs 
+6830 
+13679 
+184 
+404 
+489 
+3826 
+42100 
+ 
+Figure 30: Turn class weights 
+The op=mal maximum shib threshold was determined manually through trial-and-error. Increasing the maximum 
+threshold signiﬁcantly resulted in training diﬃcul=es. Therefore the maximum shib value was kept at one. As seen 
+in Table 8, even at very low maximum shib thresholds the lowest N/P ra=o has values signiﬁcantly larger than 
+zero. Even without any shib augmenta=on the lowest N/P ra=o is 0.96, meaning that poten=al bias towards 
+posi=ve predic=ons for certain lane slot combina=ons is low. In other words, even a model without augmenta=on 
+is unlikely to learn to predict posi=ve cases as a func=on of the loca=on of the lane slots. 
+Using a maximum lane slot shib threshold of one for each direc=on, the upper limit of the ar=ﬁcial data size 
+increases with a factor of 34 = 81 compared with the unaugmented data. The rota=on augmenta=on further 
+increases the ar=ﬁcial data size with a factor of 4. In total, the data augmenta=on increases the training sample 
+size from 674 to 218,376. 
+As shown in Figure 30, large areas of the adjacency matrix have very high N/P ra=os. These correspond to the 
+yellow areas where almost no posi=ve cases exist. Training the model with weights for these areas proved diﬃcult 
+
+
+================================================================================
+PAGE 51
+================================================================================
+41 
+as the focus become on learning to predict almost impossible cases. Therefore the loss func=on was further 
+adjusted to focus more on the area of interest, corresponding to the blue island areas in Figure 30. The remaining 
+area, deﬁned as matrix cells with a N/P ra=o values at or above 1000, is classiﬁed as the ‘almost impossible’ area 
+and was assigned a lower weigh=ng for the CE loss term. The weigh=ng and N/P ra=o threshold was determined 
+manually on a trial-and-error basis. Table 9 presents the resul=ng loss func=on weights. 
+ 
+Table 9: Turn detec=on loss func=on weights 
+ 
+Loss type 
+Area 
+Loss weight 
+CE 
+Area of interest 
+0.40 
+CE 
+Almost impossible area 
+0.20 
+SoB Dice 
+Total area 
+0.40 
+ 
+The turn detec=on model architecture is summarised in Figure 31. Just as the lane detec=on model does, it 
+combines blocks of MLPs and a ResNet CNN block. The ResNet block takes the intersec=on image input, while an 
+MLP block takes the stacked lane slot afribute probabili=es and arm bearings as input. The output from these 
+two blocks are concatenated and fed into an addi=onal MLP block, whose output is reshaped into the adjacency 
+matrix. The Sigmoid func=on is applied as the last ac=va=on func=on that produces independent probabili=es for 
+each lane slot-pair being connected. 
+ 
+ 
+Figure 31: Turn detector architecture 
+The number of FC layers were determined manually on a trial-and-error basis. Adding addi=onal layers in the 
+combined MLP block improved training. However, layer addi=ons were limited to avoid an excessive amount of 
+parameters and due to the resul=ng increased training =me. The turn detec=on model was ini=ally trained on 
+lane afribute labels, as opposed the lane afribute predic=ons. The resul=ng parameters weights were used as 
+parameter ini=alisa=on for training on the lane afribute predic=ons as a form of transfer learning to provide a 
+befer star=ng point for the op=misa=on. Addi=onal training aspects are summarised in Table 10. Larger batch 
+sizes improved training and was set to 32, which was the maximum aﬀorded by the RAM of the processing unit. 
+ 
+ 
+
+
+================================================================================
+PAGE 52
+================================================================================
+42 
+Table 10: Turn detec=on training details 
+ 
+Hyper-parameter 
+Value 
+Batch size 
+32 
+Learning rate 
+Tuned 
+Op=miser 
+Adam 
+Loss func=on 
+ℒ$)
+ + ℒ/0 
+Number of epochs 
+Early stopping 
+Sample size 
+842 
+Training/Valida=on/Test split 
+0.8 / 0.1 / 0.1 
+ 
+The output lane slot connec=on probabili=es can be binarised into predicted outcomes using a sta=c probability 
+threshold. They can also be fed through the PPH described in sec=on 3.9 to produce an alterna=ve set of predicted 
+outcomes with removed turn inconsistencies. 
+3.9 
+Post-processing heuris6c 
+The last step of the modelling pipeline is the post-processing heuris=c (PPH). Compared to using a sta=c 
+probability threshold, it can be considered as a more elaborate technique to convert the lane slot connec=on 
+probabili=es into binary outcomes. This is done through a set of rules to avoid inconsistent turn predic=ons. For 
+example, if a par=cular lane slot combina=on has been found to be connected, then there can be no lane slot 
+connec=ons with an exit lane slot to the leb of the approach lane of the combina=on that was found to be true. 
+These movements are then ﬂagged as inconsistent. The heuris=c starts with the highest probability in the 
+adjacency matrix, ﬂags it as a consistent turn, and progressively applies the heuris=c rules in descending order of 
+probability un=l all turns are ﬂagged as either consistent or inconsistent. A new probability threshold to yield 
+binarised predic=ons can subsequently be determined considering only the consistent turns. Form each arm, the 
+heuris=c rules applied are: 
+• No exit lanes to the leb of an approach lane 
+• No approach lanes to the right of an exit lane 
+• No through or right turns to the leb of a leb turn 
+• No leb turns to the right of a through or right turn 
+• No leb or though turn to the right of a right turn 
+• No turns from the same approach arm to the same exit arm and lane slot 
+ 
+ 
+
+
+================================================================================
+PAGE 53
+================================================================================
+43 
+4 
+Results 
+Model experiments have been carried out based on the modelling approach adopted as part of the model 
+selec=on process (see sec=on 3.7). This process mo=vated the choice of overall modelling structure, including the 
+staged approach with sequen=al input-output structure for each of the separate models, sobware frameworks, 
+data encoding structures, neural network components, and ac=va=on and loss func=ons. Sec=on 3.8 mo=vates 
+addi=onal training details, including the ﬁnal hyper-parameter values. It also explains the data augmenta=on 
+strategy, which relies on horizontal lane slot shibing and intersec=on rota=on to ar=ﬁcially increase data sample 
+size and reduce training bias related to loca=on of lane slots. Sec=on 3.9 outlines the role of the PPH. 
+The performance of each of the three models in the overall modelling pipeline are evaluated using a set of metrics: 
+precision; recall; and F1 (see sec=on 2.5). The lane object model is evaluated using these metrics based on the 
+predicted bounding boxes for each lane object class and their degree of overlap with the corresponding labels, 
+with a focus on visualised predic=ons. The lane predic=on model is evaluated using these metrics based on the 
+lane slot afribute matrix, while the predic=ons in the adjacency matrix inform metric values in the ﬁnal turn 
+detec=on model, and thereby also the overall modelling pipeline. 
+Most e ort is spent on the evalua=on of the turn detec=on model, partly as this determines the performance of 
+the overall modelling pipeline, but also due to addi=onal complexity in the interpreta=on of the adjacency matrix. 
+Basing the evalua=on only on predicted lane slot pairs could underes=mate the true performance of the model 
+in terms of most applica=ons (see sec=on 4.4.1). To provide a more realis=c evalua=on, results are also analysed 
+at two higher levels of analysis. Here, true posi=ve requirements for exact lane slot pair connec=ons are relaxed 
+to provide metric values that are more relevant for most real-world applica=ons. 
+To put the performance of the neural network models into context, the turn predic=ons are compared to a simple 
+rule-based default model. The default model aims to benchmark the achieved performance metric values of the 
+turn detec=on model. This can help answer the usefulness of the model in rela=ve terms to its complexity. 
+4.1 
+Evalua6on metric calcula6ons 
+Before precision and recall are calculated, output predic=ons are converted into binary outcomes using a 
+probability threshold. For example, if the threshold value is 0.5, all predic=on probabili=es above 0.5 are 
+considered posi=ve predic=ons. 
+For the object detec=on model, the precision and recall deﬁni=ons are more complex because of the addi=onal 
+locality dimension. The model not only needs to predict true or false for an object class, but also the loca=on and 
+size of the bounding box. The performance of the locality dimension is usually measured using the Intersec;on-
+over-Union (IoU) metric. This measures the propor=on of the overlapping area of the predicted and ground truth 
+bounding box over their union. A single metric referred to as Average Precision (AP) is some=mes reported by 
+calcula=ng average Precision across a range of probability thresholds and/or IoU ranges. 
+In the lane detec=on model, metric calcula=ons are based on predicted lane slot afributes. In the turn detec=on 
+model they are based on the predicted lane slot connec=ons in the adjacency matrix, which is a direct measure 
+of the intersec=on topology. Most of the cited studies using neural networks for network predic=on, such as He 
+and Balakrishnan (2022) and Buchner et al. (2023), use topology-based metrics as well as geometry based metrics. 
+However, as predic=on of lane and turn geometries are out of scope for this study, only topology-based metrics 
+are used. The topology metrics in this study will be derived directly from the lane turn adjacency matrix. This di 
+ers from above men=oned authors who base their topology metrics on common sets of nodes reachable within 
+a sub-graph based on set network distance. 
+4.2 
+Lane object detec6on 
+Evalua=on of the lane object detec=on model has focused on visualised predic=ons. The aim of the lane object 
+detec=on model is to achieve reasonable performance given the size of the training dataset. It should be suﬃcient 
+for downstream models that only some of the key lane objects are detected. For example, detec=on of only some 
+of the forward and backward cars without detec=on of the median line marking could provide enough informa=on 
+on the loca=on of approach and exit lanes. As such, less e ort is spent on achieving high values for performance 
+metric values for all object classes as long as visualised predic=ons suggest a reasonable performance for key 
+object classes. Predic=ons with a probability score below 0.5 are discarded. Figure 32 provide examples of 
+
+
+================================================================================
+PAGE 54
+================================================================================
+44 
+visualised predic=ons across four sampled arm segments and suggests sa=sfactory performance for key object 
+classes. 
+ 
+Figure 32: Visualised lane object predic=ons 
+ 
+ 
+
+
+================================================================================
+PAGE 55
+================================================================================
+45 
+The precision across ﬁve IoU thresholds along with the corresponding AP measure for key lane object classes is 
+provided in Table 11. It suggests sa=sfactory precision for most classes for IoU thresholds at or below 0.7. The 
+Stop line class is an excep=on and has compara=vely lower performance. 
+Table 11: Lane object predic=on precision across IoU thresholds and the 
+corresponding AP 
+ 
+Lane object class 
+0.1 
+0.3 
+0.5 
+0.7 
+0.9 
+AP 
+Arrow right 
+0.79 
+0.79 
+0.78 
+0.56 
+0.06 
+0.60 
+Car backward 
+0.75 
+0.75 
+0.74 
+0.70 
+0.13 
+0.61 
+Car forward 
+0.84 
+0.84 
+0.84 
+0.76 
+0.16 
+0.69 
+Car other 
+0.73 
+0.72 
+0.71 
+0.63 
+0.09 
+0.58 
+Line ver=cal lane 
+0.61 
+0.60 
+0.48 
+0.19 
+0.01 
+0.38 
+Line ver=cal median 
+0.72 
+0.70 
+0.66 
+0.41 
+0.04 
+0.51 
+Line ver=cal other 
+0.61 
+0.58 
+0.50 
+0.24 
+0.01 
+0.39 
+Pedestrian crossing signalised 
+0.91 
+0.91 
+0.91 
+0.89 
+0.36 
+0.79 
+Speed marking 
+0.63 
+0.63 
+0.61 
+0.45 
+0.04 
+0.47 
+Stop line 
+0.37 
+0.34 
+0.29 
+0.16 
+0.01 
+0.23 
+ 
+4.3 
+Lane detec6on 
+In the lane detec=on model the performance metrics are based on the lane slot afribute predic=ons. The number 
+of posi=ve predic=ons for each lane afribute are plofed against the probability threshold in Figure 33. A 
+probability threshold that yields a similar number of posi=ve predic=ons to the number of labels is selected. 
+Although the op=mal threshold varies by afribute class a single threshold of 0.80 is used for metric calcula=ons, 
+which is the op=mal threshold for the lane afribute class. The lane predic=on performance metrics are calculated 
+based on the 0.80 probability threshold, with the resul=ng metric values being summarised in Table 12. 
+Table 12: Lane predic=on metrics 
+ 
+Class 
+TP 
+FP 
+FN 
+Precision 
+Recall 
+F1 
+Slip 
+0 
+0 
+31 
+0.00 
+0.00 
+0.00 
+Leb 
+1813 
+1458 
+594 
+0.55 
+0.75 
+0.64 
+Through 
+3817 
+2492 
+647 
+0.61 
+0.86 
+0.71 
+Right 
+1843 
+1594 
+456 
+0.54 
+0.80 
+0.64 
+Approach 
+4931 
+883 
+1004 
+0.85 
+0.83 
+0.84 
+Exit 
+2868 
+1443 
+2525 
+0.67 
+0.53 
+0.59 
+No lane 
+46268 
+105 
+8096 
+1.00 
+0.85 
+0.92 
+Lane 
+9878 
+1574 
+1450 
+0.86 
+0.87 
+0.87 
+ 
+The model is able to predict the presence of lanes well. It is less able to predict lane type, and in par=cular to 
+predict exit lanes. It is also less able to predict turn type. This is expected as the lane detector is only expected to 
+yield ini=al guesses on turns serving as input to the turn detector. Of the turns types, the through movement 
+predic=ons performs befer than leB and right turns. As indicated by the zero F1 score, the model is not able to 
+predict slip lanes. 
+The large metric values for the no lane ﬂag is due to the data being heavily skewed towards posi=ve values, which 
+inﬂates precision, recall, and F1. The no lane class is the background class, where the posi=ve can be considered 
+as the default, which is opposed to the other classes where nega=ve is the default. For a background class with 
+80% posi=ve cases, a 100% posi=ve predic=on will yield a precision of 0.8, and a recall of 1.0, and a F1 of 0.88, 
+despite not guessing any nega=ve cases correctly. 
+Figure 34 shows the distribu=on of F1 scores calculated separately for each arm. For the leB, right and exit 
+afributes, a signiﬁcant number of arms have zero F1 values, indica=ng the model is struggling with subset of the 
+data. 
+
+
+================================================================================
+PAGE 56
+================================================================================
+46 
+ 
+Figure 33: Lane detec=on probability thresholds 
+
+
+================================================================================
+PAGE 57
+================================================================================
+47 
+ 
+Figure 34: Lane predic=on F1 score distribu=on by arm 
+Figures 35 and 36 provide example visualisa=ons of successful and and unsuccessful predic=ons. Here, dark blue 
+represent turn labels and pink turn predic=ons. Light blue and red indicate labelled and predicted lanes 
+respec=vely. A bar without an arrow head indicates a predicted lane without a lane type predic=on. A notable 
+pafern among the struggling examples is the reduced ability to separate approach and exit lanes, as evidenced 
+by cases A, B and D. 
+ 
+Figure 35: Successful examples of lane predic=ons 
+ 
+Figure 36: Unsuccessful examples of lane predic=ons 
+ 
+ 
+
+
+================================================================================
+PAGE 58
+================================================================================
+48 
+4.4 
+Turn detec6on 
+In the turn detec=on model the performance metrics are based on the lane slot connec=on predic=ons. As 
+discussed in sec=on 3.8.3, the exit arm columns can be categorised into leB, through, and right turn types, 
+corresponding to the ﬁrst, second, and third arm group columns in the adjacency matrix. Metrics are analysed 
+collec=vely and separately for each turn type to provide addi=onal analysis detail. 
+4.4.1 
+Levels of analysis 
+Basing metrics directly on the predicted lane slot connec=ons in the adjacency matrix could suggest ar=ﬁcially 
+low performance. Consider the case where an exact lane slot connec=on was not correctly predicted, but a 
+posi=ve predic=on was made with one of the neighbouring lane slots either the approach or exit arm. In real-
+world meaning, this predic=on could s=ll be considered a correct predic=on, but would cons=tute as a false 
+posi=ve during metric calcula=ons. To avoid such overly pessimis=c performance metrics, the analysis is broken 
+down into the three following levels of detail to provide more realis=c insight into model performance: 
+• Turn-level 
+• Lane slot-level 
+• Arm-level 
+As described above, turn-level analysis yields the most strict evalua=on metrics by considering a true posi=ve 
+being a correctly predicted lane slot combina=on. Lane slot-level metrics considers a true posi=ve being a 
+correctly predicted approach lane slot and correctly predicted exit arm. Arm-level metrics considers a true posi=ve 
+being the number of correctly predicted lanes where a par=cular turn type (i.e. leB, through, or right) is permifed. 
+The arm-level analysis also considers the numbers of correctly predicted lane types, which afempt to reﬂect the 
+exact lane conﬁgura=on of the approach lanes for each arm. The considered lane types are summarised in Table 
+13. 
+Table 13: Arm-level lane types 
+ 
+Lane type 
+Descrip=on 
+L-type 
+An approach lane with only leb turns 
+LT-type 
+An approach lane with only leb and through turns 
+LTR-type 
+An approach lane with leb, through, and right turns 
+LR-type 
+An approach lane with only leb and through turns 
+T-type 
+An approach lane with only through turns 
+TR-type 
+An approach lane with only through and right turns 
+R-type 
+An approach lane with only right turns 
+ 
+The arm-level analysis could be considered as the most relevant level of analysis for most applica=ons. Typically, 
+the informa=on of interest is the number and type or turns permifed at a par=cular arm, and how each lane is 
+conﬁgured, which is captured by the lane types. The horizontal loca=on of each lane rela=ve to the arm centreline, 
+which is considered in the turn-level and lane slot-level analysis is usually of less importance. 
+ 
+4.4.2 
+Modelled versions 
+Metrics are presented for three sets of modelled predic=ons. These include raw predic=ons from the turn 
+detec=on model using an op=mised probability threshold, processed results using the PPH with removed 
+inconsistent turn, as well as for a default rule-based model. The default model acts as a ‘easy guess’ model based 
+on the following rules: 
+• Each arm of a four-way intersec=on contain one LT-type and one TR-type lane 
+• A three-way intersec=on contain the following arms: 
+1. One T-type lane and one TR-type lane 
+2. One T-type lane and one TL-type lane 
+3. One L-type lane and one R-type lane 
+The default model is included at arm-level analysis to provide a benchmark of the performance of the neural 
+networks. This will help to put the achieved metric values into context of what can be considered a well 
+
+

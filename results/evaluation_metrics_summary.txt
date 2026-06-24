@@ -1,0 +1,253 @@
+Constructed 894 true adjacency matrices for the entire dataset.
+
+========================================================================
+EVALUATING PREDICTIONS VERSION: version_18
+========================================================================
+
+Evaluating file: turn_predictions.json (Raw (static threshold 0.5))
+Reconstructed 894 predicted matrices.
+  TURN LEVEL:
+    F1: 0.3187 (Prec: 0.2505, Rec: 0.4381)
+  SLOT LEVEL (Turn Categories):
+    left         F1: 0.6454 (Prec: 0.5745, Rec: 0.7363)
+    through      F1: 0.6456 (Prec: 0.5811, Rec: 0.7262)
+    right        F1: 0.5624 (Prec: 0.4585, Rec: 0.7272)
+    approach     F1: 0.7407 (Prec: 0.6662, Rec: 0.8338)
+  ARM LEVEL (Lane Types):
+    L            F1: 0.1135 (Prec: 0.1129, Rec: 0.1142)
+    LT           F1: 0.6196 (Prec: 0.5727, Rec: 0.6748)
+    T            F1: 0.2565 (Prec: 0.2684, Rec: 0.2456)
+    TR           F1: 0.5583 (Prec: 0.4526, Rec: 0.7283)
+    R            F1: 0.1756 (Prec: 0.1595, Rec: 0.1952)
+    mean         F1: 0.3902 (Prec: 0.3510, Rec: 0.4393)
+
+Evaluating file: turn_predictions_bin.json (Binarized (static/optimized threshold))
+Reconstructed 894 predicted matrices.
+  TURN LEVEL:
+    F1: 0.3187 (Prec: 0.2505, Rec: 0.4381)
+  SLOT LEVEL (Turn Categories):
+    left         F1: 0.6454 (Prec: 0.5745, Rec: 0.7363)
+    through      F1: 0.6456 (Prec: 0.5811, Rec: 0.7262)
+    right        F1: 0.5624 (Prec: 0.4585, Rec: 0.7272)
+    approach     F1: 0.7407 (Prec: 0.6662, Rec: 0.8338)
+  ARM LEVEL (Lane Types):
+    L            F1: 0.1135 (Prec: 0.1129, Rec: 0.1142)
+    LT           F1: 0.6196 (Prec: 0.5727, Rec: 0.6748)
+    T            F1: 0.2565 (Prec: 0.2684, Rec: 0.2456)
+    TR           F1: 0.5583 (Prec: 0.4526, Rec: 0.7283)
+    R            F1: 0.1756 (Prec: 0.1595, Rec: 0.1952)
+    mean         F1: 0.3902 (Prec: 0.3510, Rec: 0.4393)
+
+Evaluating file: turn_predictions_processed_mask.json (Processed (PPH applied))
+Reconstructed 894 predicted matrices.
+  TURN LEVEL:
+    F1: 0.0771 (Prec: 0.0416, Rec: 0.5321)
+  SLOT LEVEL (Turn Categories):
+    left         F1: 0.2813 (Prec: 0.1637, Rec: 1.0000)
+    through      F1: 0.7388 (Prec: 0.6296, Rec: 0.8937)
+    right        F1: 0.4881 (Prec: 0.3237, Rec: 0.9914)
+    approach     F1: 0.4839 (Prec: 0.3193, Rec: 0.9987)
+  ARM LEVEL (Lane Types):
+    L            F1: 0.0955 (Prec: 0.0502, Rec: 0.9984)
+    LT           F1: 0.0387 (Prec: 0.4430, Rec: 0.0203)
+    T            F1: 0.1249 (Prec: 0.5135, Rec: 0.0711)
+    TR           F1: 0.5210 (Prec: 0.3765, Rec: 0.8454)
+    R            F1: 0.2306 (Prec: 0.2214, Rec: 0.2407)
+    mean         F1: 0.1704 (Prec: 0.1125, Rec: 0.3518)
+
+  BASELINE LEVEL (Default Model - Ground Truth based):
+    L            F1: 0.5680 (Prec: 0.7259, Rec: 0.4666)
+    LT           F1: 0.8370 (Prec: 0.7206, Rec: 0.9983)
+    T            F1: 0.6087 (Prec: 0.9239, Rec: 0.4539)
+    TR           F1: 0.7239 (Prec: 0.5673, Rec: 1.0000)
+    R            F1: 0.4768 (Prec: 0.7437, Rec: 0.3509)
+    mean         F1: 0.6890 (Prec: 0.6898, Rec: 0.6882)
+
+========================================================================
+EVALUATING PREDICTIONS VERSION: version_41
+========================================================================
+
+Evaluating file: turn_predictions.json (Raw (static threshold 0.5))
+Reconstructed 894 predicted matrices.
+  TURN LEVEL:
+    F1: 0.4149 (Prec: 0.3539, Rec: 0.5013)
+  SLOT LEVEL (Turn Categories):
+    left         F1: 0.6738 (Prec: 0.5954, Rec: 0.7761)
+    through      F1: 0.7003 (Prec: 0.6542, Rec: 0.7533)
+    right        F1: 0.6729 (Prec: 0.6019, Rec: 0.7629)
+    approach     F1: 0.8100 (Prec: 0.8016, Rec: 0.8185)
+  ARM LEVEL (Lane Types):
+    L            F1: 0.1434 (Prec: 0.1841, Rec: 0.1175)
+    LT           F1: 0.5580 (Prec: 0.4772, Rec: 0.6719)
+    T            F1: 0.1866 (Prec: 0.3411, Rec: 0.1284)
+    TR           F1: 0.4553 (Prec: 0.3646, Rec: 0.6060)
+    R            F1: 0.1392 (Prec: 0.2727, Rec: 0.0934)
+    mean         F1: 0.3658 (Prec: 0.3620, Rec: 0.3697)
+
+Evaluating file: turn_predictions_bin.json (Binarized (static/optimized threshold))
+Reconstructed 894 predicted matrices.
+  TURN LEVEL:
+    F1: 0.4149 (Prec: 0.3539, Rec: 0.5013)
+  SLOT LEVEL (Turn Categories):
+    left         F1: 0.6738 (Prec: 0.5954, Rec: 0.7761)
+    through      F1: 0.7003 (Prec: 0.6542, Rec: 0.7533)
+    right        F1: 0.6729 (Prec: 0.6019, Rec: 0.7629)
+    approach     F1: 0.8100 (Prec: 0.8016, Rec: 0.8185)
+  ARM LEVEL (Lane Types):
+    L            F1: 0.1434 (Prec: 0.1841, Rec: 0.1175)
+    LT           F1: 0.5580 (Prec: 0.4772, Rec: 0.6719)
+    T            F1: 0.1866 (Prec: 0.3411, Rec: 0.1284)
+    TR           F1: 0.4553 (Prec: 0.3646, Rec: 0.6060)
+    R            F1: 0.1392 (Prec: 0.2727, Rec: 0.0934)
+    mean         F1: 0.3658 (Prec: 0.3620, Rec: 0.3697)
+
+Evaluating file: turn_predictions_processed_mask.json (Processed (PPH applied))
+Reconstructed 894 predicted matrices.
+  TURN LEVEL:
+    F1: 0.3321 (Prec: 0.2339, Rec: 0.5723)
+  SLOT LEVEL (Turn Categories):
+    left         F1: 0.7030 (Prec: 0.5979, Rec: 0.8528)
+    through      F1: 0.6845 (Prec: 0.6192, Rec: 0.7653)
+    right        F1: 0.7105 (Prec: 0.6003, Rec: 0.8702)
+    approach     F1: 0.8052 (Prec: 0.7380, Rec: 0.8859)
+  ARM LEVEL (Lane Types):
+    L            F1: 0.1390 (Prec: 0.1134, Rec: 0.1794)
+    LT           F1: 0.5793 (Prec: 0.4963, Rec: 0.6956)
+    T            F1: 0.1529 (Prec: 0.2429, Rec: 0.1116)
+    TR           F1: 0.4885 (Prec: 0.3672, Rec: 0.7297)
+    R            F1: 0.1690 (Prec: 0.2156, Rec: 0.1389)
+    mean         F1: 0.3725 (Prec: 0.3414, Rec: 0.4098)
+
+  BASELINE LEVEL (Default Model - Ground Truth based):
+    L            F1: 0.5680 (Prec: 0.7259, Rec: 0.4666)
+    LT           F1: 0.8370 (Prec: 0.7206, Rec: 0.9983)
+    T            F1: 0.6087 (Prec: 0.9239, Rec: 0.4539)
+    TR           F1: 0.7239 (Prec: 0.5673, Rec: 1.0000)
+    R            F1: 0.4768 (Prec: 0.7437, Rec: 0.3509)
+    mean         F1: 0.6890 (Prec: 0.6898, Rec: 0.6882)
+
+========================================================================
+EVALUATING PREDICTIONS VERSION: version_43
+========================================================================
+
+Evaluating file: turn_predictions.json (Raw (static threshold 0.5))
+Reconstructed 894 predicted matrices.
+  TURN LEVEL:
+    F1: 0.4311 (Prec: 0.4421, Rec: 0.4206)
+  SLOT LEVEL (Turn Categories):
+    left         F1: 0.6094 (Prec: 0.7158, Rec: 0.5306)
+    through      F1: 0.6948 (Prec: 0.6530, Rec: 0.7423)
+    right        F1: 0.6142 (Prec: 0.6504, Rec: 0.5818)
+    approach     F1: 0.7968 (Prec: 0.8171, Rec: 0.7774)
+  ARM LEVEL (Lane Types):
+    L            F1: 0.0995 (Prec: 0.1624, Rec: 0.0718)
+    LT           F1: 0.4862 (Prec: 0.4991, Rec: 0.4740)
+    T            F1: 0.2935 (Prec: 0.2657, Rec: 0.3279)
+    TR           F1: 0.4471 (Prec: 0.3865, Rec: 0.5302)
+    R            F1: 0.1238 (Prec: 0.2276, Rec: 0.0850)
+    mean         F1: 0.3503 (Prec: 0.3592, Rec: 0.3417)
+
+Evaluating file: turn_predictions_bin.json (Binarized (static/optimized threshold))
+Reconstructed 894 predicted matrices.
+  TURN LEVEL:
+    F1: 0.4311 (Prec: 0.4421, Rec: 0.4206)
+  SLOT LEVEL (Turn Categories):
+    left         F1: 0.6094 (Prec: 0.7158, Rec: 0.5306)
+    through      F1: 0.6948 (Prec: 0.6530, Rec: 0.7423)
+    right        F1: 0.6142 (Prec: 0.6504, Rec: 0.5818)
+    approach     F1: 0.7968 (Prec: 0.8171, Rec: 0.7774)
+  ARM LEVEL (Lane Types):
+    L            F1: 0.0995 (Prec: 0.1624, Rec: 0.0718)
+    LT           F1: 0.4862 (Prec: 0.4991, Rec: 0.4740)
+    T            F1: 0.2935 (Prec: 0.2657, Rec: 0.3279)
+    TR           F1: 0.4471 (Prec: 0.3865, Rec: 0.5302)
+    R            F1: 0.1238 (Prec: 0.2276, Rec: 0.0850)
+    mean         F1: 0.3503 (Prec: 0.3592, Rec: 0.3417)
+
+Evaluating file: turn_predictions_processed_mask.json (Processed (PPH applied))
+Reconstructed 894 predicted matrices.
+  TURN LEVEL:
+    F1: 0.3061 (Prec: 0.2122, Rec: 0.5488)
+  SLOT LEVEL (Turn Categories):
+    left         F1: 0.6886 (Prec: 0.6021, Rec: 0.8040)
+    through      F1: 0.6643 (Prec: 0.5895, Rec: 0.7608)
+    right        F1: 0.6840 (Prec: 0.6091, Rec: 0.7798)
+    approach     F1: 0.7711 (Prec: 0.7095, Rec: 0.8445)
+  ARM LEVEL (Lane Types):
+    L            F1: 0.1490 (Prec: 0.1309, Rec: 0.1729)
+    LT           F1: 0.5787 (Prec: 0.5021, Rec: 0.6829)
+    T            F1: 0.1808 (Prec: 0.2005, Rec: 0.1646)
+    TR           F1: 0.4836 (Prec: 0.3738, Rec: 0.6848)
+    R            F1: 0.1413 (Prec: 0.2441, Rec: 0.0994)
+    mean         F1: 0.3680 (Prec: 0.3386, Rec: 0.4030)
+
+  BASELINE LEVEL (Default Model - Ground Truth based):
+    L            F1: 0.5680 (Prec: 0.7259, Rec: 0.4666)
+    LT           F1: 0.8370 (Prec: 0.7206, Rec: 0.9983)
+    T            F1: 0.6087 (Prec: 0.9239, Rec: 0.4539)
+    TR           F1: 0.7239 (Prec: 0.5673, Rec: 1.0000)
+    R            F1: 0.4768 (Prec: 0.7437, Rec: 0.3509)
+    mean         F1: 0.6890 (Prec: 0.6898, Rec: 0.6882)
+
+========================================================================
+EVALUATING PREDICTIONS VERSION: version_45
+========================================================================
+
+Evaluating file: turn_predictions.json (Raw (static threshold 0.5))
+Reconstructed 894 predicted matrices.
+  TURN LEVEL:
+    F1: 0.4902 (Prec: 0.4680, Rec: 0.5146)
+  SLOT LEVEL (Turn Categories):
+    left         F1: 0.6823 (Prec: 0.6813, Rec: 0.6832)
+    through      F1: 0.8136 (Prec: 0.7565, Rec: 0.8802)
+    right        F1: 0.6414 (Prec: 0.6134, Rec: 0.6721)
+    approach     F1: 0.8006 (Prec: 0.7987, Rec: 0.8025)
+  ARM LEVEL (Lane Types):
+    L            F1: 0.0163 (Prec: 0.0219, Rec: 0.0131)
+    LT           F1: 0.6864 (Prec: 0.6146, Rec: 0.7772)
+    T            F1: 0.4644 (Prec: 0.5449, Rec: 0.4046)
+    TR           F1: 0.5897 (Prec: 0.4744, Rec: 0.7791)
+    R            F1: 0.0648 (Prec: 0.1003, Rec: 0.0479)
+    mean         F1: 0.4845 (Prec: 0.4834, Rec: 0.4857)
+
+Evaluating file: turn_predictions_bin.json (Binarized (static/optimized threshold))
+Reconstructed 894 predicted matrices.
+  TURN LEVEL:
+    F1: 0.4902 (Prec: 0.4680, Rec: 0.5146)
+  SLOT LEVEL (Turn Categories):
+    left         F1: 0.6823 (Prec: 0.6813, Rec: 0.6832)
+    through      F1: 0.8136 (Prec: 0.7565, Rec: 0.8802)
+    right        F1: 0.6414 (Prec: 0.6134, Rec: 0.6721)
+    approach     F1: 0.8006 (Prec: 0.7987, Rec: 0.8025)
+  ARM LEVEL (Lane Types):
+    L            F1: 0.0163 (Prec: 0.0219, Rec: 0.0131)
+    LT           F1: 0.6864 (Prec: 0.6146, Rec: 0.7772)
+    T            F1: 0.4644 (Prec: 0.5449, Rec: 0.4046)
+    TR           F1: 0.5897 (Prec: 0.4744, Rec: 0.7791)
+    R            F1: 0.0648 (Prec: 0.1003, Rec: 0.0479)
+    mean         F1: 0.4845 (Prec: 0.4834, Rec: 0.4857)
+
+Evaluating file: turn_predictions_processed_mask.json (Processed (PPH applied))
+Reconstructed 894 predicted matrices.
+  TURN LEVEL:
+    F1: 0.3851 (Prec: 0.2794, Rec: 0.6191)
+  SLOT LEVEL (Turn Categories):
+    left         F1: 0.7114 (Prec: 0.6174, Rec: 0.8393)
+    through      F1: 0.7911 (Prec: 0.6930, Rec: 0.9216)
+    right        F1: 0.6140 (Prec: 0.4922, Rec: 0.8159)
+    approach     F1: 0.8107 (Prec: 0.7504, Rec: 0.8815)
+  ARM LEVEL (Lane Types):
+    L            F1: 0.1878 (Prec: 0.2011, Rec: 0.1762)
+    LT           F1: 0.6206 (Prec: 0.5723, Rec: 0.6777)
+    T            F1: 0.3421 (Prec: 0.4846, Rec: 0.2643)
+    TR           F1: 0.5646 (Prec: 0.4178, Rec: 0.8704)
+    R            F1: 0.0826 (Prec: 0.1649, Rec: 0.0551)
+    mean         F1: 0.4281 (Prec: 0.3962, Rec: 0.4654)
+
+  BASELINE LEVEL (Default Model - Ground Truth based):
+    L            F1: 0.5680 (Prec: 0.7259, Rec: 0.4666)
+    LT           F1: 0.8370 (Prec: 0.7206, Rec: 0.9983)
+    T            F1: 0.6087 (Prec: 0.9239, Rec: 0.4539)
+    TR           F1: 0.7239 (Prec: 0.5673, Rec: 1.0000)
+    R            F1: 0.4768 (Prec: 0.7437, Rec: 0.3509)
+    mean         F1: 0.6890 (Prec: 0.6898, Rec: 0.6882)

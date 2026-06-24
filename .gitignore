@@ -1,0 +1,43 @@
+# Ignore Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore large model weights
+*.pt
+*.pth
+
+# Ignore all PDFs (references)
+*.pdf
+
+# Ignore all dataset and reference images
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# Ignore executables
+*.exe
+
+# Ignore LaTeX compilation artifacts and sources
+*.aux
+*.log
+*.nav
+*.out
+*.snm
+*.toc
+*.sty
+*.tex
+
+# Ignore main_task directory (contains local data & PDFs)
+main_task/
+
+# Ignore presentation scripts and notes
+*Script thuyết trình*
+script_thuyet_trinh.md
+SKILL.md
+
+# Ignore specific reference text files in the root directory
+Chandanaveli_2025_*
+He_2022_*
+Mattyus_2016_*
