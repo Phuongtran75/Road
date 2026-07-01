@@ -102,6 +102,7 @@ def objective_turn(trial, args, encoder, np_ratios):
     ce_weight_impossible = trial.suggest_float("ce_weight_impossible", 0.05, 0.5)
     dice_weight = trial.suggest_float("dice_weight", 0.1, 0.9)
     weight_cap = trial.suggest_float("weight_cap", 10.0, 50.0)
+    np_threshold = trial.suggest_float("np_threshold", 100.0, 5000.0, log=True)
     
     # Load splits
     split_path = os.path.join(args.data_dir, "labels", "turns", "data_split.json")
@@ -132,7 +133,8 @@ def objective_turn(trial, args, encoder, np_ratios):
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = TurnLoss(np_ratios=np_ratios, ce_weight_interest=ce_weight_interest,
                           ce_weight_impossible=ce_weight_impossible, dice_weight=dice_weight,
-                          weight_cap=weight_cap)
+                          weight_cap=weight_cap, np_threshold=np_threshold)
+    criterion.to(device)  # Move TurnLoss buffers to GPU
     
     # Train for a few epochs
     epochs = args.epochs

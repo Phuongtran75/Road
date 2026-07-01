@@ -22,6 +22,12 @@ def apply_pph(adj_matrix, threshold=0.5):
     """
     Apply Post-Processing Heuristic (PPH) rules to an adjacency matrix.
     
+    Two-phase approach per the paper (Nilsson 2024, Section 3.9):
+      Phase 1: Process ALL turns in descending probability order, classifying
+               each as consistent or inconsistent based on heuristic rules.
+      Phase 2: Apply the probability threshold only to the consistent turns
+               to produce the final binary adjacency matrix.
+    
     Parameters:
     -----------
     adj_matrix : np.ndarray
@@ -54,16 +60,12 @@ def apply_pph(adj_matrix, threshold=0.5):
     # 2. Sort turns by probability in descending order
     turns.sort(key=lambda x: x['prob'], reverse=True)
     
-    accepted_turns = []
+    # Phase 1: Classify ALL turns as consistent or inconsistent
+    # Process in descending probability order; only already-accepted (consistent)
+    # turns constrain future turns.
+    consistent_turns = []
     
-    # 3. Iterate through turns and apply consistency rules
     for turn in turns:
-        # If probability is below threshold, we can stop or just skip
-        # Note: the paper says "binarised predictions can subsequently be determined considering only the consistent turns"
-        # usually using a probability threshold. So we only consider turns with prob >= threshold.
-        if turn['prob'] < threshold:
-            continue
-            
         app_arm = turn['app_arm']
         app_slot = turn['app_slot']
         exit_arm = turn['exit_arm']
@@ -73,7 +75,7 @@ def apply_pph(adj_matrix, threshold=0.5):
         is_consistent = True
         
         # Rule 6: No turns from the same approach arm to the same exit arm and lane slot
-        for act in accepted_turns:
+        for act in consistent_turns:
             if act['app_arm'] == app_arm and act['exit_arm'] == exit_arm and act['exit_slot'] == exit_slot:
                 is_consistent = False
                 break
@@ -81,16 +83,10 @@ def apply_pph(adj_matrix, threshold=0.5):
         if not is_consistent:
             continue
             
-        # Rules 1 & 2: For any arm, all approach slots must be to the left of all exit slots.
-        # Approach slot: slot where a turn starts. Exit slot: slot where a turn ends.
-        # This means for any arm: all incoming turns must end at slots strictly greater than all slots where outgoing turns start.
-        # i.e., exit_slot > app_slot for the same arm.
-        # Let's check new turn against accepted turns on app_arm and exit_arm
-        
+        # Rules 1 & 2: For any arm, approach slots must be to the left of exit slots.
         # Check app_arm: the new turn marks app_slot as approach.
-        # So app_slot must be strictly to the left of any exit_slots on app_arm.
-        for act in accepted_turns:
-            # If act ends at app_arm, it is an exit slot on app_arm
+        # app_slot must be strictly to the left of any exit_slots on app_arm.
+        for act in consistent_turns:
             if act['exit_arm'] == app_arm:
                 if app_slot >= act['exit_slot']:
                     is_consistent = False
@@ -99,9 +95,8 @@ def apply_pph(adj_matrix, threshold=0.5):
             continue
             
         # Check exit_arm: the new turn marks exit_slot as exit.
-        # So exit_slot must be strictly to the right of any approach_slots on exit_arm.
-        for act in accepted_turns:
-            # If act starts at exit_arm, it is an approach slot on exit_arm
+        # exit_slot must be strictly to the right of any approach_slots on exit_arm.
+        for act in consistent_turns:
             if act['app_arm'] == exit_arm:
                 if exit_slot <= act['app_slot']:
                     is_consistent = False
@@ -110,11 +105,8 @@ def apply_pph(adj_matrix, threshold=0.5):
             continue
             
         # Rules 3, 4, 5: Turn-type ordering on the same approach arm
-        # Turn types on the same approach arm must be ordered Left (0) <= Through (1) <= Right (2)
-        # For any turn on the same app_arm:
-        # - If app_slot < act_slot: new turn_type <= act_turn_type
-        # - If app_slot > act_slot: new turn_type >= act_turn_type
-        for act in accepted_turns:
+        # Left (0) <= Through (1) <= Right (2) from left to right slots
+        for act in consistent_turns:
             if act['app_arm'] == app_arm:
                 if app_slot < act['app_slot'] and turn_type > act['turn_type']:
                     is_consistent = False
@@ -125,12 +117,13 @@ def apply_pph(adj_matrix, threshold=0.5):
         if not is_consistent:
             continue
             
-        # If all checks pass, accept the turn
-        accepted_turns.append(turn)
+        # If all checks pass, mark as consistent
+        consistent_turns.append(turn)
         
-    # 4. Construct binary adjacency matrix from accepted turns
+    # Phase 2: Apply threshold only to consistent turns to produce binary output
     binary_matrix = np.zeros_like(adj_matrix)
-    for turn in accepted_turns:
-        binary_matrix[turn['app_arm'], turn['app_slot'], turn['col']] = 1.0
+    for turn in consistent_turns:
+        if turn['prob'] >= threshold:
+            binary_matrix[turn['app_arm'], turn['app_slot'], turn['col']] = 1.0
         
     return binary_matrix

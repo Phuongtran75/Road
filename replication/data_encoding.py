@@ -239,23 +239,46 @@ def apply_slot_shift_augmentation(lane_matrix, adj_matrix=None, max_shift=1):
     Randomly shift the lane slot attributes horizontally by up to max_shift slots
     independently for each arm. Shifts the turn adjacency matrix correspondingly.
     
+    Per Nilsson 2024 (p.40): "The maximum threshold was further constrained
+    such that no positive turn labels were omitted." Shifts are clamped so no
+    positive label is pushed off the edge.
+    
     lane_matrix: shape (4, 22, 8)
     adj_matrix: shape (4, 22, 66), optional
     """
     new_lane_matrix = lane_matrix.copy()
     new_adj_matrix = adj_matrix.copy() if adj_matrix is not None else None
     
-    # Generate random shifts for each of the 4 arms
+    # Generate random shifts for each of the 4 arms, then clamp to preserve positives
     shifts = np.random.randint(-max_shift, max_shift + 1, size=4)
     
     for arm_idx in range(4):
+        # Clamp shift to preserve positive labels in lane_matrix
+        # Find first and last slots with any positive attribute
+        arm_feats = lane_matrix[arm_idx]  # (22, 8)
+        positive_mask = np.any(arm_feats != 0, axis=1)  # (22,)
+        
+        if adj_matrix is not None:
+            # Also check adjacency matrix rows for this approach arm
+            adj_row_mask = np.any(adj_matrix[arm_idx] != 0, axis=1)  # (22,)
+            positive_mask = positive_mask | adj_row_mask
+            
+        if np.any(positive_mask):
+            positive_indices = np.where(positive_mask)[0]
+            first_pos = positive_indices[0]
+            last_pos = positive_indices[-1]
+            # Positive shift moves data right: first_pos + shift >= 0 => shift >= -first_pos
+            # Negative shift moves data left: last_pos + shift <= 21 => shift <= 21 - last_pos
+            min_allowed = -first_pos
+            max_allowed = 21 - last_pos
+            shifts[arm_idx] = np.clip(shifts[arm_idx], min_allowed, max_allowed)
+        
         shift = shifts[arm_idx]
         if shift == 0:
             continue
             
         # Shift lane slot attributes of the arm
         # Features are shape (22, 8)
-        arm_feats = lane_matrix[arm_idx]
         shifted_feats = np.zeros_like(arm_feats)
         
         if shift > 0:

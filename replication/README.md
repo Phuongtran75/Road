@@ -8,7 +8,7 @@ The pipeline consists of a **staged modeling architecture** with **post-processi
 
 1. **Stage 1 (Oriented Object Detector)**: Predicts 32 detailed classes of lane markings and vehicles in rotated arm images.
 2. **Stage 2 (Lane Detector)**: A CNN + MLP architecture that takes rotated arm images, bearing offsets, and Stage 1 projected object detections (220-dim feature vector) as input and outputs slot-wise lane presence, type, and allowed turn directions for 22 slots.
-3. **Stage 3 (Turn Detector)**: Stacked attributes from all arms and absolute arm bearings are passed along with intersection imagery to output a $66 \times 66$ turn adjacency matrix.
+3. **Stage 3 (Turn Detector)**: Stacked attributes from all arms and absolute arm bearings are passed along with intersection imagery to output a $4 \times 22 \times 66$ turn adjacency matrix (4 approach arms × 22 lane slots × 66 exit columns).
 4. **Stage 4 (Post-Processing Heuristic)**: A rule-based heuristic that processes probabilities in descending order to enforce topological consistency.
 
 ## Project Structure

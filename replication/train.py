@@ -129,6 +129,15 @@ class LaneDataset(Dataset):
             if fname:
                 self.filename_to_detections[fname] = det_list
                 
+        # Cache image width from COCO template for projection mapping (#11)
+        self._cached_img_width = 1000.0  # default fallback
+        if os.path.exists(tmpl_path):
+            with open(tmpl_path, "r", encoding="utf-8") as f:
+                tmpl_reload = json.load(f)
+                images = tmpl_reload.get('images', [])
+                if images and 'width' in images[0]:
+                    self._cached_img_width = float(images[0]['width'])
+                
         # Build samples list: for each intersection in split, gather physical arms
         self.samples = []
         for inter_id in self.split_ids:
@@ -194,8 +203,12 @@ class LaneDataset(Dataset):
             bbox = det['bbox'] # [x, y, w, h]
             cx = bbox[0] + bbox[2] / 2.0
             
-            # Map cx (0 to 1000) to slot (0 to 21)
-            slot_idx = int(cx / (1000.0 / 22.0))
+            # Map cx to slot (0 to 21) using actual image width from bbox coordinates.
+            # The projection is spatially compressed from image pixels to 22 lane slots.
+            # Bbox coordinates are in image pixel space; image width is derived from
+            # the COCO template. Default to 1000 if unknown.
+            img_width = getattr(self, '_cached_img_width', 1000.0)
+            slot_idx = int(cx / (img_width / 22.0))
             slot_idx = max(0, min(21, slot_idx))
             
             # Add score to projection feature
@@ -314,14 +327,14 @@ class TurnDataset(Dataset):
             new_arms = sorted(arms, key=lambda x: x['bearing'] % 360)
             
         lane_attrs = np.zeros((4, 22, 8), dtype=np.float32)
-        for idx, arm in enumerate(new_arms):
+        for arm_i, arm in enumerate(new_arms):
             if arm.get('is_virtual'):
                 continue
                 
             arm_id = arm['id']
             if self.use_gt_lane_attrs:
                 # Use ground-truth attributes
-                lane_attrs[idx] = self.encoder.encode_lane_attributes(arm_id)
+                lane_attrs[arm_i] = self.encoder.encode_lane_attributes(arm_id)
             else:
                 # Use predictions from Stage 2
                 if arm_id in self.lane_predictions:
@@ -330,19 +343,19 @@ class TurnDataset(Dataset):
                         row = slot - 1
                         if slot in arm_preds:
                             s = arm_preds[slot]
-                            lane_attrs[idx, row, 0] = s['lane']
-                            lane_attrs[idx, row, 1] = s['l_type']
-                            lane_attrs[idx, row, 2] = s['slip']
-                            lane_attrs[idx, row, 3] = s['left']
-                            lane_attrs[idx, row, 4] = s['through']
-                            lane_attrs[idx, row, 5] = s['right']
-                            lane_attrs[idx, row, 6] = s['approach']
-                            lane_attrs[idx, row, 7] = s['exit']
+                            lane_attrs[arm_i, row, 0] = s['lane']
+                            lane_attrs[arm_i, row, 1] = s['l_type']
+                            lane_attrs[arm_i, row, 2] = s['slip']
+                            lane_attrs[arm_i, row, 3] = s['left']
+                            lane_attrs[arm_i, row, 4] = s['through']
+                            lane_attrs[arm_i, row, 5] = s['right']
+                            lane_attrs[arm_i, row, 6] = s['approach']
+                            lane_attrs[arm_i, row, 7] = s['exit']
                             
         # 3. Get normalized absolute bearings
         bearings = np.zeros(4, dtype=np.float32)
-        for idx, arm in enumerate(new_arms):
-            bearings[idx] = arm['bearing'] / 360.0
+        for arm_i, arm in enumerate(new_arms):
+            bearings[arm_i] = arm['bearing'] / 360.0
             
         # 4. Get ground-truth adjacency matrix
         adj_matrix = self.encoder.encode_intersection_turns(inter_id)
@@ -507,7 +520,14 @@ def train_turn_detector(args, encoder):
     # Optim & Loss
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     criterion = TurnLoss(np_ratios=np_ratios)
+    criterion.to(device)  # Fix #3: Move TurnLoss buffers to GPU
     
+    # --- Phase 1: Train on ground-truth lane attributes ---
+    # Per Nilsson 2024 (p.41): "The turn detection model was initially trained on
+    # lane attribute labels, as opposed to the lane attribute predictions. The resulting
+    # parameter weights were used as parameter initialisation for training on the lane
+    # attribute predictions as a form of transfer learning."
+    print("Phase 1: Training on ground-truth lane attributes...")
     best_val_loss = float('inf')
     epochs_no_improve = 0
     patience = 5
@@ -546,19 +566,94 @@ def train_turn_detector(args, encoder):
         if len(val_loader) > 0:
             val_loss /= len(val_loader)
         
-        print(f"Epoch {epoch+1:02d}/{args.epochs} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
+        print(f"  [Phase 1] Epoch {epoch+1:02d}/{args.epochs} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
         
         # Save best & Early stopping
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             epochs_no_improve = 0
             torch.save(model.state_dict(), os.path.join(args.save_dir, "turn_detector_best.pt"))
-            print("  --> Saved new best model checkpoint.")
+            print("    --> Saved new best model checkpoint (Phase 1).")
         else:
             epochs_no_improve += 1
             if epochs_no_improve >= patience:
-                print(f"Early stopping triggered after {epoch+1} epochs.")
+                print(f"  Early stopping triggered after {epoch+1} epochs (Phase 1).")
                 break
+    
+    # --- Phase 2: Fine-tune on predicted lane attributes (transfer learning) ---
+    # Check if predicted lane attrs are available
+    pred_path = os.path.join(args.data_dir, "predictions", "lanes", "version_73", "lane_predictions.json")
+    if not os.path.exists(pred_path):
+        pred_path = os.path.join(args.data_dir, "lane_predictions.json")
+        
+    if os.path.exists(pred_path):
+        print("\nPhase 2: Fine-tuning on predicted lane attributes (transfer learning)...")
+        # Load Phase 1 best weights as initialization
+        model.load_state_dict(torch.load(os.path.join(args.save_dir, "turn_detector_best.pt"), map_location=device))
+        
+        # Create datasets with predicted lane attributes
+        train_dataset_pred = TurnDataset(args.data_dir, train_ids, encoder, use_gt_lane_attrs=False, augment=True)
+        val_dataset_pred = TurnDataset(args.data_dir, val_ids, encoder, use_gt_lane_attrs=False, augment=False)
+        
+        drop_last_pred = len(train_dataset_pred) >= args.batch_size
+        train_loader_pred = DataLoader(train_dataset_pred, batch_size=args.batch_size, shuffle=True, drop_last=drop_last_pred)
+        val_loader_pred = DataLoader(val_dataset_pred, batch_size=args.batch_size, shuffle=False)
+        
+        # Reset optimizer with potentially lower learning rate for fine-tuning
+        optimizer_ft = torch.optim.Adam(model.parameters(), lr=args.lr * 0.1)
+        
+        best_val_loss_ft = float('inf')
+        epochs_no_improve_ft = 0
+        
+        for epoch in range(args.epochs):
+            model.train()
+            train_loss = 0.0
+            for img, non_img, targets in train_loader_pred:
+                img = img.to(device)
+                non_img = non_img.to(device)
+                targets = targets.to(device)
+                
+                optimizer_ft.zero_grad()
+                preds = model(img, non_img)
+                
+                loss = criterion(preds, targets)
+                loss.backward()
+                optimizer_ft.step()
+                
+                train_loss += loss.item()
+                
+            # Eval
+            model.eval()
+            val_loss = 0.0
+            with torch.no_grad():
+                for img, non_img, targets in val_loader_pred:
+                    img = img.to(device)
+                    non_img = non_img.to(device)
+                    targets = targets.to(device)
+                    preds = model(img, non_img)
+                    loss = criterion(preds, targets)
+                    val_loss += loss.item()
+                    
+            if len(train_loader_pred) > 0:
+                train_loss /= len(train_loader_pred)
+            if len(val_loader_pred) > 0:
+                val_loss /= len(val_loader_pred)
+            
+            print(f"  [Phase 2] Epoch {epoch+1:02d}/{args.epochs} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
+            
+            if val_loss < best_val_loss_ft:
+                best_val_loss_ft = val_loss
+                epochs_no_improve_ft = 0
+                torch.save(model.state_dict(), os.path.join(args.save_dir, "turn_detector_best.pt"))
+                print("    --> Saved new best model checkpoint (Phase 2).")
+            else:
+                epochs_no_improve_ft += 1
+                if epochs_no_improve_ft >= patience:
+                    print(f"  Early stopping triggered after {epoch+1} epochs (Phase 2).")
+                    break
+    else:
+        print("\nPhase 2 skipped: No predicted lane attributes found at", pred_path)
+        print("To enable transfer learning, first run Lane Detector inference to produce lane_predictions.json.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train Lane and Turn Detectors")

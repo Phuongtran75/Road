@@ -138,7 +138,7 @@ class TurnLoss(nn.Module):
     Combined loss for Turn Detection model.
     Includes custom area of interest and almost impossible area weightings.
     """
-    def __init__(self, np_ratios, ce_weight_interest=0.40, ce_weight_impossible=0.20, dice_weight=0.40, weight_cap=30.0):
+    def __init__(self, np_ratios, ce_weight_interest=0.40, ce_weight_impossible=0.20, dice_weight=0.40, weight_cap=30.0, np_threshold=1000.0):
         super(TurnLoss, self).__init__()
         # np_ratios is a tensor of shape (4, 22, 66)
         self.register_buffer('np_ratios', torch.tensor(np_ratios, dtype=torch.float32))
@@ -146,9 +146,11 @@ class TurnLoss(nn.Module):
         self.ce_weight_impossible = ce_weight_impossible
         self.dice_weight = dice_weight
         self.weight_cap = weight_cap
+        self.np_threshold = np_threshold
         
-        # Identify almost impossible mask (N/P ratio >= 1000)
-        self.register_buffer('almost_impossible_mask', (self.np_ratios >= 1000.0))
+        # Identify almost impossible mask (N/P ratio >= np_threshold)
+        # Per 2026 paper Section 3.7, this threshold is a tunable hyperparameter.
+        self.register_buffer('almost_impossible_mask', (self.np_ratios >= np_threshold))
         
         # Compute cell-wise positive weights (capped)
         pos_weights = torch.clamp(self.np_ratios, max=weight_cap)
