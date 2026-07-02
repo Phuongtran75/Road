@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lane Topology — Interactive Map Demo</title>
+    <meta name="description" content="Lane-level intersection topology detection results visualized on satellite and OpenStreetMap.">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="map.css">
+</head>
+<body>
+    <!-- Full-screen Map -->
+    <div id="map"></div>
+
+    <!-- Floating Header -->
+    <div class="map-header">
+        <div class="header-brand">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/>
+                <line x1="12" y1="22" x2="12" y2="15.5"/>
+                <polyline points="22 8.5 12 15.5 2 8.5"/>
+                <polyline points="2 15.5 12 8.5 22 15.5"/>
+                <line x1="12" y1="2" x2="12" y2="8.5"/>
+            </svg>
+            <span>LaneTopology</span>
+        </div>
+        <div class="header-subtitle">Lane-Level Intersection Detection Results</div>
+    </div>
+
+    <!-- Floating Control Panel -->
+    <div class="control-panel" id="control-panel">
+        <div class="panel-toggle" id="panel-toggle" onclick="togglePanel()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+        </div>
+
+        <div class="panel-content" id="panel-content">
+            <div class="panel-section">
+                <label class="panel-label">INTERSECTION</label>
+                <select id="intersection-select" class="panel-select" onchange="selectIntersection(this.value)">
+                </select>
+            </div>
+
+            <div class="panel-section">
+                <label class="panel-label">MODEL OUTPUT</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-processed" onclick="setMode('processed')">PPH Processed</button>
+                    <button class="toggle-btn" id="btn-raw" onclick="setMode('raw')">Raw Predictions</button>
+                </div>
+            </div>
+
+            <div class="panel-section" id="info-section">
+                <label class="panel-label">DETAILS</label>
+                <div class="info-grid" id="info-grid">
+                    <!-- Filled dynamically -->
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <label class="panel-label">LEGEND</label>
+                <div class="legend-grid">
+                    <div class="legend-item">
+                        <span class="legend-line approach"></span>
+                        <span>Approach Lane</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-line exit"></span>
+                        <span>Exit Lane</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-line through"></span>
+                        <span>Through Turn</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-line left"></span>
+                        <span>Left Turn</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-line right"></span>
+                        <span>Right Turn</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section" id="turn-info-section" style="display:none;">
+                <label class="panel-label">SELECTED LANE TURNS</label>
+                <div id="turn-details"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Info Tooltip (bottom-center) -->
+    <div class="map-tooltip" id="map-tooltip">
+        Click an <strong>approach lane</strong> (blue) to see predicted turn connections
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="map.js"></script>
+</body>
+</html>
